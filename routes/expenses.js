@@ -16,4 +16,19 @@ router.post('/', async(req,res)=>{
     res.status(200).send({savedExpense});
 })
 
+router.put('/',async(req,res)=>{
+    const {expenseId, name,price} = req.body;
+    const foundExpense = await Expense.findById(expenseId);
+    if(foundExpense){
+        foundExpense.name = name || foundExpense.name;
+        foundExpense.price = price || foundExpense.price;
+        const updatedExpense = await foundExpense.save();
+        if(updatedExpense){
+            res.status(200).send(updatedExpense)
+        }
+    }else{
+        res.status(404).send({message:'Expense could not be found'});
+    }
+});
+
 module.exports = router;

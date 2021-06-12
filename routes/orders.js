@@ -9,7 +9,7 @@ shortId.characters(
   );
 
 router.get('/', async(req,res)=>{
-    const allOrders = await Order.find({});
+    const allOrders = await Order.find({}).sort({ createdAt: -1 });;
     res.status(200).send(allOrders);
 });
 
@@ -31,40 +31,46 @@ router.get('/:id',async(req,res)=>{
 });
 
 router.post("/", async (req, res) => {
-  const orderId = shortId.generate().toUpperCase().slice(0,7);
-  const {
-    deliveryDate,
-    customerId,
-    customerName,
-    deliveryAddress,
-    category,
-    currency,
-    basePrice,
-    deliveryCost,
-    description,
-    notes
-  } = req.body;
-
-  const totalPrice = basePrice + deliveryCost;
-
-  const newOrder = new Order({
-    orderId,
-    deliveryDate,
-    customerId,
-    customerName,
-    deliveryAddress,
-    category,
-    currency,
-    basePrice,
-    deliveryCost,
-    totalPrice,
-    saldo:totalPrice,
-    description,
-    notes,
-    status:'PENDING'
-  });
-  const savedNewOrder = await newOrder.save();
-  res.status(200).send(savedNewOrder);
+    try{
+        const orderId = shortId.generate().toUpperCase().slice(0,7);
+        const {
+          deliveryDate,
+          customerId,
+          customerName,
+          deliveryAddress,
+          category,
+          currency,
+          basePrice,
+          deliveryCost,
+          description,
+          notes
+        } = req.body;
+      
+        const totalPrice = basePrice + deliveryCost;
+      
+        const newOrder = new Order({
+          orderId,
+          deliveryDate,
+          customerId,
+          customerName,
+          deliveryAddress,
+          category,
+          currency,
+          basePrice,
+          deliveryCost,
+          totalPrice,
+          saldo:totalPrice,
+          description,
+          notes,
+          status:'PENDING'
+        });
+        const savedNewOrder = await newOrder.save();
+        res.status(200).send(savedNewOrder);
+    }catch(exception){
+        console.log(exception);
+        res.status(403).send({message:'Error occured, please check logs...'})
+    }
+  
 });
 
 router.put('/', async(req,res)=>{
@@ -81,6 +87,17 @@ router.put('/', async(req,res)=>{
     description,
     notes} = req.body;
     if(orderFound){
+        let saldo = 0;
+        let newTotal = basePrice + deliveryCost
+        if(orderFound.paidAmount.length === 0){
+            saldo = newTotal;
+        }else{
+            let alreadyPaid = 0;
+            orderFound.paidAmount.forEach(payment=>{
+                alreadyPaid = alreadyPaid + payment.paidAmount;
+            })
+            saldo = newTotal - alreadyPaid;
+        }
         orderFound.deliveryDate = deliveryDate || orderFound.deliveryDate,
         orderFound.customerId = customerId || orderFound.customerId,
         orderFound.customerName = customerName || orderFound.customerName,
@@ -91,6 +108,9 @@ router.put('/', async(req,res)=>{
         orderFound.deliveryCost = deliveryCost || orderFound.deliveryCost,
         orderFound.description = description || orderFound.description,
         orderFound.notes = notes || orderFound.notes
+        orderFound.totalPrice = (basePrice + deliveryCost) || orderFound.totalPrice
+        orderFound.saldo = saldo
+        orderFound.isPaid = saldo === 0 ? true:false
         const updatedOrder = await orderFound.save();
         res.status(200).send({updatedOrder});
     }else{
@@ -158,7 +178,6 @@ router.delete('/delete-partial-payment/:orderId/:paymentId',async(req,res)=>{
     }else{
         res.status(404).send({message:'Order not found.'})
     }
-    
 })
 
 module.exports = router;
