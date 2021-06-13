@@ -5,7 +5,7 @@ const Order = require("../model/orderModel");
 
 
 router.get("/", async (req, res) => {
-  const allCustomers = await Customer.find({});
+  const allCustomers = await Customer.find({}).sort({ createdAt: -1 });
   console.log(allCustomers)
   res.status(200).send({allCustomers});
 });

@@ -9,7 +9,7 @@ shortId.characters(
   );
 
 router.get('/', async(req,res)=>{
-    const allOrders = await Order.find({}).sort({ createdAt: -1 });;
+    const allOrders = await Order.find({}).sort({ createdAt: -1 });
     res.status(200).send(allOrders);
 });
 
